@@ -1,0 +1,29 @@
+{
+    "GENERAL_INFO": {
+        "APP_NAME": "CarbonX",
+        "VERSION": "v1.0",
+        "YEAR": 2025,
+        "AUTHOR": "Anonymous",
+        "AFFILIATION": "Anonymous"
+    },
+    "SUPPORTED_REGIONS": [
+        "US-CAL-CISO",
+        "US-TEX-ERCO"
+    ],
+    "SUPPORTED_MODELS": [
+        "sundial_zs"
+    ],
+    "DATE_RANGE_START": "2021-01-01",
+    "DATE_RANGE_END": "2024-12-31",
+    "CURRENT_MODEL": "sundial_zs",
+
+    "MODEL_REGISTRY": {
+        "sundial_zs": {
+            "name": "Sundial",
+            "repo":  "thuml/sundial-base-128m",
+            "model_kwargs": {"trust_remote_code": "True"},
+            "lookback": 360,
+            "num_samples": 20
+        }
+    }
+}
