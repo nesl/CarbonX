@@ -22,7 +22,7 @@ While we have locally implemented all the papers mentioned in the paper, most of
 1. Point-value forecasting: :white_check_mark:
 2. Extended forecasting horizon: :white_check_mark:
 
-### Supported features:
+### Supported grids:
 1. California (US-CAL-CISO): :white_check_mark:
 2. Texas (US-TEX-ERCO): :white_check_mark:
 
