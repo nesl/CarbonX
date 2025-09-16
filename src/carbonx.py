@@ -53,7 +53,8 @@ class CarbonX():
         lookback = model_reg_entry.get("lookback")
         num_samples = model_reg_entry.get("num_samples")
         ci_forecasts = self._get_forecasts(self.model_dict[cur_model], gt_ci_data, 
-                                                       lookback=lookback, num_samples=num_samples)
+                                                       lookback=lookback, num_samples=num_samples,
+                                                       horizon=horizon)
         return ci_forecasts
     
     def get_missing_ci_data(self):
@@ -81,7 +82,7 @@ class CarbonX():
             ci_column = ci_data.filter(like="Carbon").columns[0]
             ci_data = ci_data[ci_column].values
             actual.extend(ci_data)
-        forecast = self.get_ci_forecasts(region=region, date=date)
+        forecast = self.get_ci_forecasts(region=region, date=date, horizon=168)
         return self._get_mape(actual, forecast)
     
     def _check_date_validity(self, date):
@@ -168,9 +169,9 @@ if __name__ == "__main__":
     # cx._get_model()
     # hist_ci = cx.get_ci_historical("US-CAL-CISO", "2023-01-01")
     # print(hist_ci)
-    # ci_forecast = cx.get_ci_forecasts("US-CAL-CISO", "2023-01-01")
-    # print(ci_forecast)
-    print(cx.get_forecasting_accuracy("US-TEX-ERCO", "2021-10-31"))
+    ci_forecast = cx.get_ci_forecasts("US-CAL-CISO", "2023-01-01")
+    print(ci_forecast)
+    # print(cx.get_forecasting_accuracy("US-TEX-ERCO", "2021-10-31"))
     
 
   
