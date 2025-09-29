@@ -4,11 +4,10 @@ import json5, json
 import os
 from datetime import datetime, timedelta
 import models
-
 import torch
 
 CONFIG_FILE_DIR = "../config/"
-DATA_FILE_DIR = "../data/"
+DATA_FILE_DIR = "../data/forecasting-data/"
 SUCCESS = 0
 FAILURE = 1
 
@@ -82,7 +81,7 @@ class CarbonX():
             ci_column = ci_data.filter(like="Carbon").columns[0]
             ci_data = ci_data[ci_column].values
             actual.extend(ci_data)
-        forecast = self.get_ci_forecasts(region=region, date=date, horizon=168)
+        forecast = self.get_ci_forecasts(region=region, date=date, horizon=96)
         return self._get_mape(actual, forecast)
     
     def _check_date_validity(self, date):
@@ -109,7 +108,7 @@ class CarbonX():
         return float(np.mean(np.abs((actual - forecast) / denom)) * 100.0)
     
     def _get_model(self):
-        print("Model: ", self.config["CURRENT_MODEL"])
+        print("Current Model: ", self.config["CURRENT_MODEL"])
         return self.config["CURRENT_MODEL"]
     
     def _get_config(self):
@@ -135,10 +134,15 @@ class CarbonX():
             if not repo:
                 print(f"[WARN] Registry entry for '{model}' missing 'repo'. Skipping.")
                 continue
+            device = reg_entry.get("device")
+            if (not torch.cuda.is_available()):
+                device = "cpu"
+            torch.device(device)
             model_kwargs = dict(reg_entry.get("model_kwargs", {}))
             try:
+                print(f"Loading model {model_name}...")
                 model_class = getattr(models, model_name)
-                model_dict[model] = model_class(repo, model_kwargs)
+                model_dict[model] = model_class(repo, device, model_kwargs)
             except Exception as e:
                 print(f"[ERROR] Failed to load '{model}' ({repo}): {e}")
                 exit(0)
@@ -169,9 +173,9 @@ if __name__ == "__main__":
     # cx._get_model()
     # hist_ci = cx.get_ci_historical("US-CAL-CISO", "2023-01-01")
     # print(hist_ci)
-    ci_forecast = cx.get_ci_forecasts("US-CAL-CISO", "2023-01-01")
-    print(ci_forecast)
-    # print(cx.get_forecasting_accuracy("US-TEX-ERCO", "2021-10-31"))
+    # ci_forecast = cx.get_ci_forecasts("US-CAL-CISO", "2023-01-01")
+    # print(ci_forecast)
+    print(cx.get_forecasting_accuracy("US-TEX-ERCO", "2021-10-31"))
     
 
   
