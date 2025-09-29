@@ -8,7 +8,7 @@ Repository for CarbonX
 python3 -m venv .venv
 source .venv/bin/activate
 pip3 install transformers==4.40.1
-pip3 install pandas numpy json5 torch
+pip3 install pandas numpy json5 torch accelerate
 ```
 <br> Then, run the CarbonX file with the desired API (you need to manually uncomment the API calls from within the file).
 ```

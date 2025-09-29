@@ -3,19 +3,56 @@
         "APP_NAME": "CarbonX",
         "VERSION": "v1.0",
         "YEAR": 2025,
-        "AUTHOR": "Anonymous",
-        "AFFILIATION": "Anonymous"
+        "AUTHOR": "Diptyaroop Maji, Kang Yang, Prashant Shenoy, Ramesh K Sitaraman, Mani Srivastava",
+        "AFFILIATION": "University of Massachusetts Amherst, Universit of California Los Angeles"
     },
-    "SUPPORTED_REGIONS": [
-        "US-CAL-CISO",
-        "US-TEX-ERCO"
+    "SUPPORTED_REGIONS_FORECASTING": [
+        "AE", "AF", "AL", "AM", "AO", "AR", "AT", "AU-NSW", "AU-NT", "AU-QLD", 
+        "AU-SA", "AU-TAS", "AU-TAS-FI", "AU-TAS-KI", "AU-VIC", "AU-WA", "AU-WA-RI", 
+        "AZ", "BA", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BO", "BR-CS", "BR-N", 
+        "BR-NE", "BR-S", "BT", "BW", "BY", "BZ", "CA-AB", "CA-BC", "CA-MB", "CA-NB", 
+        "CA-NL", "CA-NS", "CA-NT", "CA-NU", "CA-ON", "CA-PE", "CA-QC", "CA-SK", 
+        "CA-YT", "CG", "CH", "CL-SEN", "CM", "CN", "CO", "CR", "CU", "CY", "CZ", 
+        "DE", "DJ", "DK", "DO", "DZ", "EC", "EE", "EG", "ER", "ES", "FI", "FR", 
+        "GA", "GB", "GB-NIR", "GE", "GH", "GL", "GN", "GQ", "GR", "GT", "GY", "HK", 
+        "HN", "HR", "HU", "ID", "IE", "IN", "IN-EA", "IN-NE", "IN-NO", "IN-SO", 
+        "IN-WE", "IQ", "IR", "IS", "IT", "JO", "JP", "JP-KY", "JP-TK", "KE", "KG", 
+        "KH", "KR", "KW", "KZ", "LB", "LK", "LT", "LU", "LV", "LY", "MA", "MD", 
+        "MG", "ML", "MM", "MN", "MT", "MX", "MY", "MY-EM", "MY-WM", "NI", "NL", 
+        "NO", "NZ", "PA", "PE", "PL", "PT", "PY", "RO", "RS", "RU-1", "RU-2", "RW", 
+        "SA", "SD", "SE", "SG", "SK", "SR", "SV", "TD", "UG", "US-AK", "US-AK-SEAPA", 
+        "US-CAL-BANC", "US-CAL-CISO", "US-CAL-IID", "US-CAL-LDWP", "US-CAL-TIDC", 
+        "US-CAR-CPLE", "US-CAR-CPLW", "US-CAR-DUK", "US-CAR-SC", "US-CAR-SCEG", 
+        "US-CAR-YAD", "US-CENT-SPA", "US-CENT-SWPP", "US-FLA-FMPP", "US-FLA-FPC", 
+        "US-FLA-FPL", "US-FLA-GVL", "US-FLA-HST", "US-FLA-JEA", "US-FLA-SEC", "US-FLA-TAL", 
+        "US-FLA-TEC", "US-HI", "US-MIDA-PJM", "US-MIDW-AECI", "US-MIDW-LGEE", "US-MIDW-MISO", 
+        "US-NE-ISNE", "US-NW-AVA", "US-NW-BPAT", "US-NW-CHPD", "US-NW-DOPD", "US-NW-GCPD", 
+        "US-NW-GRID", "US-NW-IPCO", "US-NW-NEVP", "US-NW-NWMT", "US-NW-PACE", "US-NW-PACW", 
+        "US-NW-PGE", "US-NW-PSCO", "US-NW-PSEI", "US-NW-SCL", "US-NW-TPWR", "US-NW-WACM", 
+        "US-NW-WAUW", "US-NY-NYIS", "US-SE-SEPA", "US-SE-SOCO", "US-SW-AZPS", "US-SW-EPE", 
+        "US-SW-PNM", "US-SW-SRP", "US-SW-TEPC", "US-SW-WALC", "US-TEN-TVA", "US-TEX-ERCO", 
+        "UY", "UZ", "VE", "VN", "YE", "ZA", "ZM", "ZW"
+    ],
+    "SUPPORTED_REGIONS_FORECAST_BENCHMARKING": [
+        "AU-QLD", "US-NW-BPAT", "US-CAL-CISO", "DE", "US-TEX-ERCO", "ES", "US-FLA-FPL", 
+        "US-NE-ISNE", "NL", "US-NY-NYIS", "US-MIDA-PJM", "PL", "SE"
+    ],
+    "SUPPORTED_REGIONS_IMPUTATION": [
+        "BE", "CH", "DE", "DK", "ES", "FI", "FR", "GB", "GR", "HR", "HU", "IE", 
+        "IT", "LT", "LV", "NL", "PL", "PT", "SE", "SI", "US-CAL-CISO", "US-CAL-LDWP", 
+        "US-CAR-DUK", "US-CENT-SPA", "US-CENT-SWPP", "US-FLA-FMPP", "US-FLA-FPC", 
+        "US-FLA-FPL", "US-MIDA-PJM", "US-MIDW-AECI", "US-MIDW-MISO", "US-NE-ISNE", 
+        "US-NW-BPAT", "US-NW-CHPD", "US-NW-IPCO", "US-NW-NEVP", "US-NW-NWMT", "US-NW-PACE", 
+        "US-NW-PACW", "US-NW-PSCO", "US-NW-PSEI", "US-NW-TPWR", "US-NW-WACM", "US-NY-NYIS", 
+        "US-SE-SEPA", "US-SE-SOCO", "US-SW-PNM", "US-SW-SRP", "US-SW-WALC", "US-TEX-ERCO"
     ],
     "SUPPORTED_MODELS": [
-        "sundial_zs"
+        "sundial_zs",
+        "timemoe_zs"
     ],
     "DATE_RANGE_START": "2021-01-01",
     "DATE_RANGE_END": "2024-12-31",
-    "CURRENT_MODEL": "sundial_zs",
+    "CURRENT_MODEL": "timemoe_zs",
 
     "MODEL_REGISTRY": {
         "sundial_zs": {
@@ -23,7 +60,17 @@
             "repo":  "thuml/sundial-base-128m",
             "model_kwargs": {"trust_remote_code": "True"},
             "lookback": 360,
-            "num_samples": 20
+            "num_samples": 20,
+            "device": "cuda"
+        },
+        "timemoe_zs": {
+            "name": "TimeMoe",
+            "repo":  "Maple728/TimeMoE-50M",
+            "model_kwargs": {
+                "trust_remote_code": "True"},
+            "lookback": 360,
+            "num_samples": 1,
+            "device": "cuda"
         }
     }
 }
