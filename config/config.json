@@ -49,7 +49,9 @@
     "SUPPORTED_MODELS": [
         "sundial_zs",
         "timemoe_zs",
-        "moment_zs"
+        "moment_zs",
+        "timesfm_zs",
+        "chronos_zs"
     ],
     "DATE_RANGE_START": "2021-01-01",
     "DATE_RANGE_END": "2024-12-31",
@@ -90,6 +92,34 @@
             "forecast_horizon": 96,
             "num_samples": 1,
             "device": "cuda"
-        }
+        },
+        "chronos_zs": {
+            "name": "Chronos",
+            "repo": "amazon/chronos-t5-large",
+            "model_kwargs": {
+                "device_map": "auto",
+                "torch_dtype": "float16"
+            },
+            "lookback": 24,
+            "forecast_horizon": 96,
+            "num_samples": 100,
+            "device": "cuda"
+            },
+        "timesfm_zs": {
+            "name": "TimesFM",
+            "repo": "google/timesfm-2.0-500m-pytorch",
+            "model_kwargs": {
+                "seq_len": 24,
+                "horizen_len": 96,
+                "pacth_len": 2,
+                "num_layers": 50,
+                "use_positional_embedding": "False",
+                "freq_level": 0
+            },
+            "lookback": 24,
+            "forecast_horizon": 96,
+            "num_samples": 1,
+            "device": "cuda"
+            }
     }
 }
