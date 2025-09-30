@@ -2,10 +2,25 @@
 Repository for CarbonX
 
 ## Installing Dependencies
-To run CarbonX, you need to first install all the required packages. We recommend creating a Python virtual environment for this.
+To run CarbonX, you need to first install all the required packages. We recommend creating a Python v3.11 virtual environment for this, since MOMENT is not compatible with later Python versions.
+
+Script to install Python3.11:
 ```
-python3 -m venv .venv
+cd ~
+wget https://www.python.org/ftp/python/3.11.9/Python-3.11.9.tgz
+tar -xvf Python-3.11.9.tgz
+cd Python-3.11.9
+./configure --prefix=$HOME/python311 --enable-optimizations
+make -j
+make install
+```
+After that, add Python3.11.9 to PATH.
+
+Script to create virtual environment and install dependencies:
+```
+python3.11 -m venv .venv
 source .venv/bin/activate
+pip3 install momentfm
 pip3 install transformers==4.40.1
 pip3 install pandas numpy json5 torch accelerate
 ```
@@ -62,7 +77,7 @@ The following models and modes are supported. While we evaluated all the models 
 ### Forecasting: Zero-shot Mode
 
 1. [Chronos](https://github.com/amazon-science/chronos-forecasting) :soon::hourglass_flowing_sand:
-2. [MOMENT](https://github.com/moment-timeseries-foundation-model/moment) :soon::hourglass_flowing_sand:
+2. [MOMENT](https://github.com/moment-timeseries-foundation-model/moment) :white_check_mark:
 3. [Sundial](https://github.com/thuml/Sundial/tree/main) :white_check_mark:
 4. [Time-MoE](https://github.com/Time-MoE/Time-MoE) :white_check_mark:
 5. [Times-FM](https://github.com/google-research/timesfm) :soon::hourglass_flowing_sand:

@@ -48,18 +48,36 @@
     ],
     "SUPPORTED_MODELS": [
         "sundial_zs",
-        "timemoe_zs"
+        "timemoe_zs",
+        "moment_zs"
     ],
     "DATE_RANGE_START": "2021-01-01",
     "DATE_RANGE_END": "2024-12-31",
-    "CURRENT_MODEL": "timemoe_zs",
+    "CURRENT_MODEL": "moment_zs",
 
     "MODEL_REGISTRY": {
+        "moment_zs": {
+            "name": "Moment",
+            "repo": "AutonLab/MOMENT-1-large", 
+            "model_kwargs": {
+                "task_name": "forecasting",
+                "head_dropout": 0.1,
+                "weight_decay": 0,
+                "freeze_encoder": "True",
+                "freeze_embedder": "True",
+                "freeze_head": "True"
+            },
+            "lookback": 512,
+            "forecast_horizon": 96,
+            "num_samples": 1,
+            "device": "cuda"
+        },
         "sundial_zs": {
             "name": "Sundial",
             "repo":  "thuml/sundial-base-128m",
             "model_kwargs": {"trust_remote_code": "True"},
             "lookback": 360,
+            "forecast_horizon": 96,
             "num_samples": 20,
             "device": "cuda"
         },
@@ -69,6 +87,7 @@
             "model_kwargs": {
                 "trust_remote_code": "True"},
             "lookback": 360,
+            "forecast_horizon": 96,
             "num_samples": 1,
             "device": "cuda"
         }

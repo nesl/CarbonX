@@ -18,7 +18,7 @@ class CarbonX():
         self.model_dict = self._initialize_models()
 
     def get_ci_historical(self, region, date):
-        if (region not in self.config["SUPPORTED_REGIONS"]):
+        if (region not in self.config["SUPPORTED_REGIONS_FORECASTING"]):
             print("Region not supported!")
             exit(0)
         
@@ -34,7 +34,7 @@ class CarbonX():
         return required_ci_data
 
     def get_ci_forecasts(self, region, date, horizon=96, pi=False):
-        if (region not in self.config["SUPPORTED_REGIONS"]):
+        if (region not in self.config["SUPPORTED_REGIONS_FORECASTING"]):
             print("Region not supported!")
             exit(0)
         
@@ -60,11 +60,11 @@ class CarbonX():
         return
     
     def get_supported_grids(self):
-        return self.config["SUPPORTED_REGIONS"]
+        return self.config["SUPPORTED_REGIONS_FORECASTING"]
     
     def get_forecasting_accuracy(self, region, date):
         print(region, date)
-        if (region not in self.config["SUPPORTED_REGIONS"]):
+        if (region not in self.config["SUPPORTED_REGIONS_FORECASTING"]):
             print("Region not supported!")
             exit(0)
         
@@ -139,10 +139,16 @@ class CarbonX():
                 device = "cpu"
             torch.device(device)
             model_kwargs = dict(reg_entry.get("model_kwargs", {}))
+            other_kwargs = {
+                "lookback": reg_entry.get("lookback"),
+                "num_samples": reg_entry.get("num_samples"), 
+                "device": reg_entry.get("device"),
+                "forecast_horizon": reg_entry.get("forecast_horizon")
+            }
             try:
                 print(f"Loading model {model_name}...")
                 model_class = getattr(models, model_name)
-                model_dict[model] = model_class(repo, device, model_kwargs)
+                model_dict[model] = model_class(repo, model_kwargs, other_kwargs)
             except Exception as e:
                 print(f"[ERROR] Failed to load '{model}' ({repo}): {e}")
                 exit(0)
