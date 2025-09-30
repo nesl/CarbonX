@@ -76,11 +76,11 @@ The following models and modes are supported. While we evaluated all the models 
 
 ### Forecasting: Zero-shot Mode
 
-1. [Chronos](https://github.com/amazon-science/chronos-forecasting) :soon::hourglass_flowing_sand:
+1. [Chronos](https://github.com/amazon-science/chronos-forecasting) :white_check_mark:
 2. [MOMENT](https://github.com/moment-timeseries-foundation-model/moment) :white_check_mark:
 3. [Sundial](https://github.com/thuml/Sundial/tree/main) :white_check_mark:
 4. [Time-MoE](https://github.com/Time-MoE/Time-MoE) :white_check_mark:
-5. [Times-FM](https://github.com/google-research/timesfm) :soon::hourglass_flowing_sand:
+5. [Times-FM](https://github.com/google-research/timesfm) :white_check_mark:
 
 ### Forecasting: Domain-Specific Fine-Tuned Mode
 1. [Chronos](https://github.com/amazon-science/chronos-forecasting) :soon::hourglass_flowing_sand:
