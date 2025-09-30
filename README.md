@@ -21,6 +21,8 @@ Script to create virtual environment and install dependencies:
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip3 install momentfm
+pip3 install chronos
+pip3 install timesfm
 pip3 install transformers==4.40.1
 pip3 install pandas numpy json5 torch accelerate
 ```
