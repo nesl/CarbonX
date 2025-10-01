@@ -121,7 +121,7 @@ def main():
     import matplotlib.patches as mpatches
     leg = ax.legend(
         handles=[mpatches.Patch(color="#0f5c08", label="Supported"),
-                 mpatches.Patch(color="#d9d9d9", label="Other zones")],
+                 mpatches.Patch(color="#d9d9d9", label="Other grids")],
         loc="lower left", frameon=True
     )
     for t in leg.get_texts(): t.set_fontsize(9)

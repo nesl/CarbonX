@@ -41,6 +41,20 @@ Run the CarbonX file with the desired model and API (for now, you need to manual
 python3 carbonx.py 
 ```
 
+### API List:
+
+| **Function**               | **Parameters**                  | **Returns**           | **Description**                                                                                                                                                       |
+|---------------------------|----------------------------------|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `get_ci_historical()`     | `grid`, `date`                   | Hourly CI             | Get historical carbon intensity (CI) for the specified grid and date.                                                                                                 |
+| `get_ci_forecasts()`      | `grid`, `date`, `horizon`, `PI`  | Hourly CI forecasts   | Get CI forecasts for the given horizon hours (max 96) on the specified date. Returns prediction intervals if `PI` is `True`.                                          |
+| `get_forecast_accuracy()` | `grid`, `date`, `horizon`        | MAPE (%)              | Get CI forecasting accuracy for the given horizon hours (max 96) on the specified date. Returns error if ground truth is not available.  |
+| `get_missing_ci_data()`   | `CI series`, `mask`              | Imputed CI            | Get imputed CI data from the specified series. A mask value of 0 indicates missing data. |
+| `get_supported_grids()`   | —                                | Grid list             | List of currently supported grids.   |
+| `set_model()`             | `model_name`, `mode`             | Success / Failure     | Specify the TSFM model and mode (`ZS`, `FT`). |
+
+*Table: API functions to access worldwide carbon intensity data and forecasts. (ZS: Zero-Shot; FT: Fine-Tuned).*
+
+
 ## Supported Grids
 
 ### Benchmarking:
