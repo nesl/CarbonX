@@ -21,10 +21,18 @@ Script to create virtual environment and install dependencies:
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip3 install momentfm
+<<<<<<< HEAD
 pip3 install chronos-forecasting
 pip3 install timesfm
 pip3 install transformers==4.40.1
 pip3 install pandas numpy json5 torch accelerate matplotlib
+=======
+pip3 install timesfm
+pip3 install transformers==4.40.1
+python3 -m pip install git+https://github.com/amazon-science/chronos-forecasting.git
+pip3 install pandas numpy json5 torch accelerate scikit-learn
+
+>>>>>>> 4411aa4 (update chronos and timesfm)
 ```
 
 ## Running CarbonX

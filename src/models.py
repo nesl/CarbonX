@@ -7,15 +7,14 @@ from momentfm import MOMENTPipeline
 from momentfm.utils.utils import control_randomness
 from momentfm.data.informer_dataset import InformerDataset
 from momentfm.utils.forecasting_metrics import get_forecasting_metrics
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="momentfm.models.moment")
+
 import torch
+import numpy as np
 
 # Caronos:
-import numpy as np
-try:
-    from chronos import ChronosPipeline
-except Exception:
-    from amazon_chronos import ChronosPipeline  # fallback if environment uses this name
-
+from chronos import ChronosPipeline
 # TimesFM:
 import timesfm
 
@@ -95,199 +94,208 @@ class Chronos:
     Args
     ----
     repo: str
-        e.g., "amazon/chronos-t5-large"
+        e.g., "amazon/chronos-t5-large" or "amazon/chronos-bolt-small"
     model_kwargs: dict
         Passed to ChronosPipeline.from_pretrained (e.g., {"torch_dtype": torch.float16})
     other_kwargs: dict
-        - device: "cuda" or "cpu"
-        - lookback: optional (for reference; not strictly required by pipeline)
+        - device: "cuda" or "cpu" (optional; auto-detected if missing)
+        - lookback: optional (not required here)
     """
-    def __init__(self, repo, model_kwargs, other_kwargs):
+
+    def __init__(self, repo, model_kwargs=None, other_kwargs=None):
+        other_kwargs = other_kwargs or {}
+        model_kwargs = dict(model_kwargs or {})
+
         self.repo = repo
-        self.model_kwargs = dict(model_kwargs or {})
         self.device = other_kwargs.get("device", "cuda" if torch.cuda.is_available() else "cpu")
 
-        # Let the pipeline place itself; if user passes device_map/torch_dtype we honor it.
-        # For CUDA, default to float16 to save memory unless the user overrode it.
-        if self.device.startswith("cuda") and "torch_dtype" not in self.model_kwargs:
-            self.model_kwargs["torch_dtype"] = torch.float16
+        # Prefer fp16 on CUDA unless caller overrides
+        if self.device.startswith("cuda") and "torch_dtype" not in model_kwargs:
+            model_kwargs["torch_dtype"] = torch.float16
 
-        # Some envs prefer explicit device_map
-        if "device_map" not in self.model_kwargs:
-            self.model_kwargs["device_map"] = "auto"
+        # Let HF place weights unless caller specified
+        model_kwargs.setdefault("device_map", "auto")
 
-        self.model = ChronosPipeline.from_pretrained(self.repo, **self.model_kwargs)
+        # Load pipeline
+        self.model = ChronosPipeline.from_pretrained(self.repo, **model_kwargs)
 
     @torch.no_grad()
     def _get_forecasts(self, input_data, horizon=96, num_samples=100):
         """
         input_data: torch.Tensor with shape (L,) or (B, L) — univariate only.
-        horizon:    int prediction length
-        num_samples:int number of sample paths for quantiles/mean
-
-        Returns:
-            np.ndarray of shape (horizon,), the median forecast by default.
-            (flip to mean by changing the aggregation line below)
+        Returns: np.ndarray (horizon,)  median over samples by default.
         """
-        # ---- shape + device handling ----
-        if isinstance(input_data, torch.Tensor):
-            ts = input_data
-        else:
-            ts = torch.as_tensor(input_data)
-
-        # Accept (L,) or (B, L). Chronos expects per-series; we handle B=1 here.
+        # ---- normalize input & shape handling ----
+        ts = input_data if isinstance(input_data, torch.Tensor) else torch.as_tensor(input_data)
         if ts.ndim == 1:
             ts = ts.unsqueeze(0)  # (1, L)
         elif ts.ndim != 2:
             raise ValueError(f"Chronos expects 1D or 2D tensor, got shape {tuple(ts.shape)}")
 
-        ts = ts.to(self.device, dtype=torch.float32)
+        ts = ts.to(dtype=torch.float32)
 
-        # ---- per-series z-norm (matches your other models’ behavior) ----
         mean = ts.mean(dim=-1, keepdim=True)
         std = ts.std(dim=-1, keepdim=True)
         std = torch.where(std == 0, torch.full_like(std, 1e-6), std)
         ts_norm = (ts - mean) / std
 
-        # Convert to cpu numpy for pipeline if needed (pipeline handles numpy inputs well)
-        past_values = ts_norm[0].detach().float().cpu().numpy()  # use first series
+        # ---- IMPORTANT: Chronos in your env requires a 1-D *CPU* torch.Tensor ----
+        # Provide only the first series if (B, L) was passed.
+        context = ts_norm[0].to("cpu", dtype=torch.float32).contiguous().view(-1)  # shape (L,)
 
         # ---- inference ----
-        # We request samples so we can aggregate (median/mean) and then inverse-scale.
-        # quantiles is optional; we aggregate from samples for robustness.
+        # predict(...) returns a tensor of shape (num_samples, horizon) for single series
         out = self.model.predict(
-            past_values=past_values,
-            prediction_length=horizon,
-            num_samples=num_samples if num_samples is not None else 100,
-            return_samples=True,         # get sample paths
-            temperature=1.0,             # default sampling temperature
+            context=context,                         # must be torch.Tensor (CPU)
+            prediction_length=int(horizon),
+            num_samples=int(num_samples) if num_samples is not None else 100,
+            temperature=1.0,
+            top_k=50,
+            top_p=1.0,
+            limit_prediction_length=False,
         )
 
-        # out["samples"]: (num_samples, horizon)
-        samples = out["samples"] if isinstance(out, dict) else out
-        samples = np.asarray(samples, dtype=np.float32)
+        samples = out.detach().cpu().numpy().astype(np.float32) # (B, S, H)
+        
+        # ---- aggregate & inverse normalization ----
+        # out may be Tensor or ndarray with shapes like:
+        # (S, H), (1, S, H), (B, S, H), (S, B, H), or (H,)
+        out_t = out if isinstance(out, torch.Tensor) else torch.as_tensor(out)
 
-        # choose your aggregator:
-        # agg = samples.mean(axis=0)     # mean forecast
-        agg = np.median(samples, axis=0) # median forecast (robust)
+        # Normalize to (S, H) by picking the first series if a batch is present
+        if out_t.ndim == 3:
+            # assume last dim is horizon
+            if out_t.shape[-1] != horizon:
+                raise ValueError(f"Unexpected output shape {tuple(out_t.shape)}; expected horizon {horizon} as last dim.")
+            # Prefer (B, S, H) -> first batch
+            if out_t.shape[0] == 1 or (out_t.shape[0] > 1 and out_t.shape[1] == horizon):
+                samples_2d = out_t[0]                       # (S, H)
+            # Handle (S, 1, H) or (S, B, H) -> first series in second dim
+            elif out_t.shape[1] == 1:
+                samples_2d = out_t[:, 0, :]                 # (S, H)
+            else:
+                # default: treat first batch
+                samples_2d = out_t[0]                       # (S, H)
+        elif out_t.ndim == 2:
+            samples_2d = out_t                              # (S, H)
+        elif out_t.ndim == 1:
+            # Single path -> fake samples dim
+            samples_2d = out_t.unsqueeze(0)                 # (1, H)
+        else:
+            raise ValueError(f"Unsupported output ndim={out_t.ndim}, shape={tuple(out_t.shape)}")
 
-        # ---- inverse normalization ----
+        samples = samples_2d.detach().cpu().numpy().astype(np.float32)  # (S, H)
+        agg = np.median(samples, axis=0)                                 # (H,)  or .mean(axis=0)
+
         mean_np = mean[0].detach().cpu().numpy().astype(np.float32)
-        std_np = std[0].detach().cpu().numpy().astype(np.float32)
+        std_np  = std[0].detach().cpu().numpy().astype(np.float32)
         forecast = agg * std_np.squeeze() + mean_np.squeeze()
 
-        # ensure 1-D shape (horizon,)
         return np.asarray(forecast, dtype=np.float32).reshape(horizon)
 
 
+# ---------- TimesFM wrapper (legacy 2.0 API, PyTorch) ----------
+# Requires: pip install timesfm==1.3.* (or your env's version that exposes TimesFmHparams/TimesFmCheckpoint/TimesFm)
+# Checkpoint: google/timesfm-2.0-500m-pytorch
+
 class TimesFM:
     """
-    Direct wrapper over google/timesfm (no custom TimesFMModel, no scaling).
+    Wrapper for TimesFM 2.0 (PyTorch) with a stable interface:
+        __init__(repo, model_kwargs, other_kwargs)
+        _get_forecasts(input_data, horizon=96, num_samples=None) -> np.ndarray [B, H]
 
-    Args
-    ----
-    repo: str
-        Unused (kept for API symmetry), e.g. "google/timesfm-2.0-500m-pytorch".
-    model_kwargs: dict
-        May include:
-          - "seq_len" (int)
-          - "horizon_len" or "horizen_len" (int)
-          - "patch_len" or "pacth_len" (int) -> mapped to per_core_batch_size
-          - "num_layers" (int, default 50)
-          - "use_positional_embedding" (bool, default False)
-          - "freq_level" (int, default 0)
-    other_kwargs: dict
-        - "device": "cuda" or "cpu" (default auto)
-        - "lookback": context length if not in model_kwargs
-        - "forecast_horizon": horizon if not in model_kwargs
+    Notes:
+    - Matches the 500M checkpoint's fixed architecture hyperparameters exactly.
+    - Uses per-series mean/std normalization and zero-pads the normalized series
+      to a multiple of input_patch_len (32) to avoid reshape errors.
     """
+
     def __init__(self, repo, model_kwargs, other_kwargs):
-
+        # --- required checkpoint (fixed architecture) ---
         self.repo = repo
-        mk = dict(model_kwargs or {})
-        self.device = other_kwargs.get("device", "cuda" if torch.cuda.is_available() else "cpu")
-        backend = "gpu" if self.device == "cuda" else "cpu"
 
-        # lengths
-        seq_len = mk.get("seq_len", other_kwargs.get("lookback"))
-        horizon = mk.get("horizon_len", mk.get("horizen_len", other_kwargs.get("forecast_horizon", 96)))
-        patch_len = mk.get("patch_len", mk.get("pacth_len", 2))
-        if seq_len is None:
-            raise ValueError("TimesFM: seq_len / lookback must be provided.")
-        if horizon is None:
-            raise ValueError("TimesFM: forecast_horizon must be provided.")
+        # --- caller hints ---
+        model_kwargs = dict(model_kwargs or {})
+        other_kwargs = dict(other_kwargs or {})
+        self.device = other_kwargs.get("device", "cuda")
+        self.lookback = int(other_kwargs.get("lookback", 512))          # your context length (can be < or > 32)
+        self.default_horizon = int(other_kwargs.get("forecast_horizon", 96))
 
-        self.seq_len = int(seq_len)
-        self.horizon = int(horizon)
-        self.patch_len = int(patch_len)
+        backend = "gpu" if str(self.device).startswith("cuda") else "cpu"
 
-        # extra hparams (optional)
-        num_layers = int(mk.get("num_layers", 50))
-        use_pos_emb = bool(mk.get("use_positional_embedding", False))
-
-        # default frequency level (can be overridden per-call if you want)
-        self.freq_level = int(mk.get("freq_level", 0))
-
-        # instantiate TimesFm directly
-        self.model = timesfm.TimesFm(
-            hparams=timesfm.TimesFmHparams(
-                backend=backend,
-                per_core_batch_size=self.patch_len,
-                horizon_len=self.horizon,
-                num_layers=num_layers,
-                use_positional_embedding=use_pos_emb,
-                context_len=self.seq_len,
-            ),
-            checkpoint=timesfm.TimesFmCheckpoint(
-                huggingface_repo_id="google/timesfm-2.0-500m-pytorch"
-            ),
+        # --- CRITICAL: hparams MUST match the 500M checkpoint ---
+        # You can change per_core_batch_size and context_len safely, but the following must stay fixed:
+        # input_patch_len=32, output_patch_len=128, num_layers=50, model_dims=1280, use_positional_embedding=False, horizon_len=128
+        hparams = timesfm.TimesFmHparams(
+            backend=backend,
+            per_core_batch_size=int(model_kwargs.get("per_core_batch_size", 1)),  # match how many series you pass per call
+            horizon_len=128,                       # fixed by ckpt; we slice to requested horizon later
+            input_patch_len=32,                    # fixed by ckpt
+            output_patch_len=128,                  # fixed by ckpt
+            num_layers=50,                         # fixed by ckpt
+            model_dims=1280,                       # fixed by ckpt
+            use_positional_embedding=False,        # fixed by ckpt
+            context_len=max(32, int(self.lookback))# can be set freely (>= lookback is fine)
         )
 
-    @torch.no_grad()
-    def _get_forecasts(self, input_data, horizon=96, num_samples=None, freq_level=None):
+        ckpt = timesfm.TimesFmCheckpoint(huggingface_repo_id=self.repo)
+        self.model = timesfm.TimesFm(hparams=hparams, checkpoint=ckpt)
+
+        # cache for padding
+        self._patch_len = 32
+
+    def _get_forecasts(self, input_data, horizon=96, num_samples=None):
         """
-        input_data: torch.Tensor or np.ndarray, shape (L,) or (1, L); ALREADY NORMALIZED upstream.
-        horizon:    override forecast length (defaults to init horizon).
-        num_samples: unused (kept for API parity).
-        freq_level: optional override; 0 (daily/high freq), 1 (weekly/monthly), 2 (quarterly+).
+        Args:
+            input_data: torch.Tensor or np.ndarray
+                shape [L] or [B, L]; values are raw (unnormalized) time series.
+            horizon: int, forecast horizon to return (<= 128).
+            num_samples: unused (TimesFM returns point forecast + optional quantiles).
 
         Returns:
-            np.ndarray of shape (horizon,)
+            preds: np.ndarray with shape [B, horizon] on the original scale.
         """
-        # normalize shape -> 1D numpy
-        if isinstance(input_data, torch.Tensor):
-            if input_data.ndim == 2:
-                if input_data.size(0) != 1:
-                    raise ValueError("TimesFM wrapper currently supports batch size 1.")
-                series = input_data[0].detach().cpu().numpy()
-            elif input_data.ndim == 1:
-                series = input_data.detach().cpu().numpy()
-            else:
-                raise ValueError(f"TimesFM expects 1D or (1, L) input, got {tuple(input_data.shape)}")
-        else:
-            arr = np.asarray(input_data)
-            if arr.ndim == 2:
-                if arr.shape[0] != 1:
-                    raise ValueError("TimesFM wrapper currently supports batch size 1.")
-                series = arr[0]
-            elif arr.ndim == 1:
-                series = arr
-            else:
-                raise ValueError(f"TimesFM expects 1D or (1, L) input, got {arr.shape}")
+        import numpy as np
+        import torch
 
-        # choose horizon/freq
-        pred_len = int(horizon) if horizon is not None else self.horizon
-        freq = int(self.freq_level if freq_level is None else freq_level)
+        # ---- coerce to tensor [B, L] ----
+        if isinstance(input_data, np.ndarray):
+            input_data = torch.from_numpy(input_data)
+        if input_data.dim() == 1:
+            input_data = input_data.unsqueeze(0)  # [1, L]
+        input_data = input_data.to(torch.float32)
 
-        # timesfm API expects list of series and list of freq
-        forecast_input = [series.astype(np.float32)]
-        freq_list = [freq]
+        B, L = input_data.shape
 
-        point_forecast, experimental_quantile_forecast = self.model.forecast(forecast_input, freq_list)
-        yhat = np.asarray(point_forecast[0], dtype=np.float32)
+        # ---- per-series mean/std normalization ----
+        mean = input_data.mean(dim=-1, keepdim=True)                 # [B, 1]
+        std = input_data.std(dim=-1, keepdim=True).clamp_min(1e-8)   # [B, 1]
+        normed = (input_data - mean) / std                           # [B, L]
 
-        # enforce requested length
-        if yhat.shape[0] != pred_len:
-            yhat = yhat[:pred_len]
-        return yhat.reshape(pred_len)
+        # ---- pad normalized series to multiple of patch_len (=32) ----
+        pad_needed = (-L) % self._patch_len
+        if pad_needed > 0:
+            # right-pad with zeros (which corresponds to mean after normalization)
+            pad = torch.zeros((B, pad_needed), dtype=normed.dtype, device=normed.device)
+            normed = torch.cat([normed, pad], dim=-1)  # [B, L_pad]
+        L_pad = normed.shape[-1]
 
+        # ---- convert to Python lists of 1D arrays as expected by legacy API ----
+        series_list = [normed[i, :].detach().cpu().numpy().astype(np.float32) for i in range(B)]
+        # legacy API requires a frequency list; choose 0 (high-frequency) by default
+        freq_list = [0] * B
+
+        # ---- run forecast ----
+        point_list, _q = self.model.forecast(series_list, freq_list)  # list of arrays, each length >= 128
+        H = int(horizon)
+        if H > 128:
+            raise ValueError(f"horizon={H} exceeds checkpoint horizon 128.")
+        preds_norm = np.stack([arr[:H] for arr in point_list], axis=0)  # [B, H] in normalized space
+
+        # ---- inverse normalization ----
+        mean_np = mean.detach().cpu().numpy()  # [B, 1]
+        std_np  = std.detach().cpu().numpy()   # [B, 1]
+        preds = preds_norm * std_np + mean_np  # [B, H]
+
+        return preds
+# ---------- end TimesFM wrapper ----------
