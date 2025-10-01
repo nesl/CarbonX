@@ -21,10 +21,10 @@ Script to create virtual environment and install dependencies:
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip3 install momentfm
-pip3 install chronos
+pip3 install chronos-forecasting
 pip3 install timesfm
 pip3 install transformers==4.40.1
-pip3 install pandas numpy json5 torch accelerate
+pip3 install pandas numpy json5 torch accelerate matplotlib
 ```
 
 ## Running CarbonX
@@ -46,6 +46,9 @@ python3 carbonx.py
 **Date range:** 2020-01-01 to 2021-12-31
 
 ### Worldwide Forecasting:
+
+![Coverage](img/coverage-map.png)
+
 1. **Africa:** AO, BF, BI, BJ, BW, CG, CM, DJ, DZ, EG, ER, GA, GH, GN, GQ, KE, LY, MA, MG, ML, RW, SD, TD, UG, YE, ZA, ZM, ZW
 2. **Asia:** AE, AF, AM, AZ, BD, BH, BT, CN, CY, HK, ID, IN-EA, IN-NE, IN-NO, IN, IN-SO, IN-WE, IQ, IR, JO, JP-KY, JP, JP-TK, KG, KH, KR, KW, KZ, LB, LK, MM, MN, MY-EM, MY, MY-WM, SA, SG, UZ, VN
 3. **Central America:** BZ, CR, CU, DO, GT, HN, NI, PA, SV

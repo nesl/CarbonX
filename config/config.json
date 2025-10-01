@@ -47,15 +47,15 @@
         "US-SE-SEPA", "US-SE-SOCO", "US-SW-PNM", "US-SW-SRP", "US-SW-WALC", "US-TEX-ERCO"
     ],
     "SUPPORTED_MODELS": [
+        // "chronos_zs",
         "sundial_zs",
         "timemoe_zs",
         "moment_zs",
-        "timesfm_zs",
-        "chronos_zs"
+        "timesfm_zs"
     ],
     "DATE_RANGE_START": "2021-01-01",
     "DATE_RANGE_END": "2024-12-31",
-    "CURRENT_MODEL": "moment_zs",
+    "CURRENT_MODEL": "sundial_zs",
 
     "MODEL_REGISTRY": {
         "moment_zs": {
@@ -98,7 +98,7 @@
             "repo": "amazon/chronos-t5-large",
             "model_kwargs": {
                 "device_map": "auto",
-                "torch_dtype": "float16"
+                "torch_dtype": "auto"
             },
             "lookback": 24,
             "forecast_horizon": 96,
