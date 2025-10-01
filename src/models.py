@@ -13,7 +13,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="momentfm.models.
 import torch
 import numpy as np
 
-# Caronos:
+# Chronos:
 from chronos import ChronosPipeline
 # TimesFM:
 import timesfm
@@ -45,7 +45,6 @@ class Moment:
         self.model.init()
 
     def _get_forecasts(self, input_data, horizon=96, num_samples=None):
-        print("MOEMENT forecasting")
         self.model = self.model.to(self.device)
         self.model.eval()
         mean, std = input_data.mean(dim=-1, keepdim=True), input_data.std(dim=-1, keepdim=True)

@@ -21,18 +21,10 @@ Script to create virtual environment and install dependencies:
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip3 install momentfm
-<<<<<<< HEAD
-pip3 install chronos-forecasting
-pip3 install timesfm
-pip3 install transformers==4.40.1
-pip3 install pandas numpy json5 torch accelerate matplotlib
-=======
 pip3 install timesfm
 pip3 install transformers==4.40.1
 python3 -m pip install git+https://github.com/amazon-science/chronos-forecasting.git
-pip3 install pandas numpy json5 torch accelerate scikit-learn
-
->>>>>>> 4411aa4 (update chronos and timesfm)
+pip3 install pandas numpy json5 torch accelerate matplotlib scikit-learn
 ```
 
 ## Running CarbonX
@@ -52,7 +44,6 @@ python3 carbonx.py
 | `get_supported_grids()`   | —                                | Grid list             | List of currently supported grids.   |
 | `set_model()`             | `model_name`, `mode`             | Success / Failure     | Specify the TSFM model and mode (`ZS`, `FT`). |
 
-*Table: API functions to access worldwide carbon intensity data and forecasts. (ZS: Zero-Shot; FT: Fine-Tuned).*
 
 
 ## Supported Grids
