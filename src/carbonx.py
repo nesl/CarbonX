@@ -8,6 +8,7 @@ import torch
 
 CONFIG_FILE_DIR = "../config/"
 DATA_FILE_DIR = "../data/forecasting-data/"
+FORECAST_FILE_DIR = "../ci-forecasts/"
 SUCCESS = 0
 FAILURE = 1
 
@@ -38,8 +39,8 @@ class CarbonX():
             print("Region not supported!")
             exit(0)
         
-        if (self._check_date_validity(date) == FAILURE):
-            print("Out of supported date range!")
+        if (self._check_forecast_date_validity(date) == FAILURE):
+            print("Out of supported forecast date range!")
             exit(0)
 
         data = pd.read_csv(f"{DATA_FILE_DIR}/{region}.csv", index_col=["Datetime (UTC)"])
@@ -49,11 +50,26 @@ class CarbonX():
         
         cur_model = self._get_model()
         model_reg_entry = self.config["MODEL_REGISTRY"].get(cur_model)
+        model_name = model_reg_entry.get("name")
+
+        if (model_name == "Sundial"): # check if forecasts are already available in file
+            forecast_file = f"{FORECAST_FILE_DIR}/{model_name}/{region}.csv"
+            if (os.path.exists(forecast_file)): 
+                forecast_data = pd.read_csv(forecast_file, index_col = ["Datetime (UTC)"])
+                forecast_start_date = self.config["FORECAST_DATE_RANGE_START"]
+                num_days = self._get_num_days_between_two_dates(forecast_start_date, date)
+                ci_column = forecast_data.filter(like="Carbon").columns[0]
+                forecast_ci_data = forecast_data.iloc[num_days*horizon:][[ci_column]]
+                print("File data found")
+                return forecast_ci_data[ci_column].values[:horizon]
+            else:
+                print("File not found. Generating forecasts on the fly...")
         lookback = model_reg_entry.get("lookback")
         num_samples = model_reg_entry.get("num_samples")
         ci_forecasts = self._get_forecasts(self.model_dict[cur_model], gt_ci_data, 
                                                        lookback=lookback, num_samples=num_samples,
                                                        horizon=horizon)
+        
         return ci_forecasts
     
     def get_missing_ci_data(self):
@@ -91,6 +107,20 @@ class CarbonX():
         if (cur_date >= date_range_start and cur_date <= date_range_end):
             return SUCCESS
         return FAILURE
+
+    def _check_forecast_date_validity(self, date):
+        date_range_start = datetime.strptime(self.config["FORECAST_DATE_RANGE_START"], "%Y-%m-%d")
+        date_range_end = datetime.strptime(self.config["FORECAST_DATE_RANGE_END"], "%Y-%m-%d")
+        cur_date = datetime.strptime(date, "%Y-%m-%d")
+        if (cur_date >= date_range_start and cur_date <= date_range_end):
+            return SUCCESS
+        return FAILURE
+    
+    def _get_num_days_between_two_dates(self, date1, date2):
+        d1 = pd.to_datetime(date1)
+        d2 = pd.to_datetime(date2)
+        num_days = (d2.date() - d1.date()).days
+        return num_days
     
     def _get_forecasts(self, model, ci_data, lookback, num_samples=None, horizon=96):
         ci_column = ci_data.filter(like="Carbon intensity").columns[0]
@@ -108,7 +138,7 @@ class CarbonX():
         return float(np.mean(np.abs((actual - forecast) / denom)) * 100.0)
     
     def _get_model(self):
-        print("Current Model: ", self.config["CURRENT_MODEL"])
+        # print("Current Model: ", self.config["CURRENT_MODEL"])
         return self.config["CURRENT_MODEL"]
     
     def _get_config(self):
@@ -124,7 +154,10 @@ class CarbonX():
         model_dict = {}
         supported_models = self.config["SUPPORTED_MODELS"]
         model_registry = self.config["MODEL_REGISTRY"]
+        current_model = self.config["CURRENT_MODEL"]
         for model in supported_models:
+            if (model != current_model):
+                continue
             reg_entry = model_registry.get(model)
             if not reg_entry:
                 print(f"[WARN] No registry entry for '{model}'. Skipping.")
@@ -172,6 +205,7 @@ class CarbonX():
         else:
             print("Model/mode not supported!")
             return FAILURE
+        self.model_dict = self._initialize_models()
         return SUCCESS
     
 if __name__ == "__main__":
@@ -179,9 +213,39 @@ if __name__ == "__main__":
     # cx._get_model()
     # hist_ci = cx.get_ci_historical("US-CAL-CISO", "2023-01-01")
     # print(hist_ci)
-    # ci_forecast = cx.get_ci_forecasts("US-CAL-CISO", "2023-01-01")
-    # print(ci_forecast)
-    print(cx.get_forecasting_accuracy("US-TEX-ERCO", "2021-10-31"))
+    ci_forecast = cx.get_ci_forecasts("US-CAL-CISO", "2023-01-01")
+    print(ci_forecast)
+    # print(cx.get_forecasting_accuracy("US-TEX-ERCO", "2021-10-31"))
+
+    # cur_model = cx._get_model()
+    # cur_model_name = cx.config["MODEL_REGISTRY"][cur_model]["name"]
+    # print(cur_model_name)
+    # start_s = "2021-02-01"
+    # end_s   = "2024-12-28"
+    # days = pd.date_range(start_s, end_s, freq="D")
+    # day_to_96hrs = {
+    #     d.strftime("%Y-%m-%d"): pd.date_range(d, periods=96, freq="h").strftime("%Y-%m-%d %H:%M").tolist()
+    #     for d in days
+    # }
+
+    # supported_grids = cx.get_supported_grids()
+    # for grid in supported_grids:
+    #     forecast_dates = []
+    #     ci_forecasts = []
+    #     print(grid)
+    #     for cur_day in day_to_96hrs.keys():
+    #         # print(cur_day)
+    #         ci_forecast = cx.get_ci_forecasts(grid, cur_day)
+    #         forecast_dates.extend(day_to_96hrs[cur_day])
+    #         ci_forecasts.extend(ci_forecast)
+        
+    #     forecast_df = pd.DataFrame({"Datetime (UTC)": forecast_dates, 
+    #                                 "Carbon Intensity Forecast": ci_forecasts})
+    #     forecast_df.to_csv(f"{FORECAST_FILE_DIR}/{cur_model_name}/{grid}.csv", index=False)
+    #     print(len(forecast_df))
+
+
+
     
 
   

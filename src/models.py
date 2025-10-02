@@ -85,6 +85,7 @@ class TimeMoe:
         mean = mean.cpu().numpy()
         std = std.cpu().numpy()
         predictions = normed_predictions * std + mean
+        predictions = predictions.flatten()
 
         return predictions
 
@@ -296,5 +297,5 @@ class TimesFM:
         std_np  = std.detach().cpu().numpy()   # [B, 1]
         preds = preds_norm * std_np + mean_np  # [B, H]
 
-        return preds
+        return preds.flatten()
 # ---------- end TimesFM wrapper ----------
