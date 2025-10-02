@@ -47,7 +47,7 @@
         "US-SE-SEPA", "US-SE-SOCO", "US-SW-PNM", "US-SW-SRP", "US-SW-WALC", "US-TEX-ERCO"
     ],
     "SUPPORTED_MODELS": [
-        // "chronos_zs",
+        "chronos_zs",
         "sundial_zs",
         "timemoe_zs",
         "moment_zs",
@@ -55,11 +55,7 @@
     ],
     "DATE_RANGE_START": "2021-01-01",
     "DATE_RANGE_END": "2024-12-31",
-<<<<<<< HEAD
     "CURRENT_MODEL": "sundial_zs",
-=======
-    "CURRENT_MODEL": "timesfm_zs",
->>>>>>> 4411aa4 (update chronos and timesfm)
 
     "MODEL_REGISTRY": {
         "moment_zs": {
